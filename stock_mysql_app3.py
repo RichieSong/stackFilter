@@ -38,6 +38,34 @@ st.markdown("""
 .anchor-nav a:hover {
     background: #0a58ca;
 }
+
+/* 月度分析表格 定制宽窄 */
+div[data-testid="stDataFrame"] table th:nth-child(1),
+div[data-testid="stDataFrame"] table td:nth-child(1) {
+    width: 100px !important;
+    min-width: 100px !important;
+    max-width: 100px !important;
+}
+div[data-testid="stDataFrame"] table th:nth-child(3),
+div[data-testid="stDataFrame"] table td:nth-child(3) {
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
+}
+div[data-testid="stDataFrame"] table th:nth-child(4),
+div[data-testid="stDataFrame"] table td:nth-child(4) {
+    width: 160px !important;
+    min-width: 160px !important;
+    max-width: 160px !important;
+}
+/* 大盘分析列 占满宽度 + 自动换行 + 高行高 */
+div[data-testid="stDataFrame"] table th:nth-child(2),
+div[data-testid="stDataFrame"] table td:nth-child(2) {
+    white-space: pre-wrap !important;
+    word-break: break-all !important;
+    line-height: 1.6 !important;
+    min-width: 550px !important;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -184,12 +212,12 @@ def get_all_data():
         market_volume AS 大盘成交额, limit_up AS 涨停家数,
         limit_down AS 跌停家数, rise_count AS 上涨家数,
         fall_count AS 下跌家数, max_board AS 最高板,
-        index_node AS 指数节点, auction AS 竞价,
-        star_leader AS 星星龙头, hexin_stock AS 和信个股,
+        index_node AS 指数节点, auction AS 竞价预判,
+        star_leader AS 一字首板, hexin_stock AS 和信个股,
         sector_core AS 板块核心,
-        band_pioneer AS 波段先锋,
-        first_plate_yesterday AS 昨日首板家数,
-        con_plate_yesterday AS 昨日连板家数,
+        band_pioneer AS 首板突破,
+        first_plate_yesterday AS 昨日首板,
+        con_plate_yesterday AS 昨日连板,
         mid_line_attack AS 中线上攻,
         short_line_attack AS 短线上攻
     FROM stock_data ORDER BY date ASC
@@ -414,8 +442,8 @@ with tab1:
                           delta_color="normal" if "金叉" in avg else "inverse")
             with g9:
                 try:
-                    first_plate = int(latest["昨日首板家数"])
-                    con_plate = int(latest["昨日连板家数"])
+                    first_plate = int(latest["昨日首板"])
+                    con_plate = int(latest["昨日连板"])
                     rate = round(con_plate / first_plate * 100, 1) if first_plate != 0 else 0
                 except:
                     rate = 0
@@ -469,8 +497,8 @@ with tab2:
             df_plot["最高板_标签"] = df_plot["最高板_真实"].astype(str) + "板"
             fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["最高板_缩放"], name="最高板", line=dict(color="#FF6B35", width=3), mode="lines+markers+text", text=df_plot["最高板_标签"], textposition="top center", textfont=dict(size=12, color="#FF6B35", weight="bold"), marker=dict(size=8, color="#FF6B35")))
 
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["昨日首板家数"], name="昨日首板家数", line=dict(color="#22c55e", width=2), mode="lines+markers+text", text=df_plot["昨日首板家数"].astype(str) + "家", textposition="top center", textfont=dict(size=11, color="#22c55e", weight="bold")))
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["昨日连板家数"], name="昨日连板家数", line=dict(color="#f59e0b", width=2), mode="lines+markers+text", text=df_plot["昨日连板家数"].astype(str) + "家", textposition="top center", textfont=dict(size=11, color="#f59e0b", weight="bold")))
+            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["昨日首板"], name="昨日首板", line=dict(color="#22c55e", width=2), mode="lines+markers+text", text=df_plot["昨日首板"].astype(str) + "家", textposition="top center", textfont=dict(size=11, color="#22c55e", weight="bold")))
+            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["昨日连板"], name="昨日连板", line=dict(color="#f59e0b", width=2), mode="lines+markers+text", text=df_plot["昨日连板"].astype(str) + "家", textposition="top center", textfont=dict(size=11, color="#f59e0b", weight="bold")))
             fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["短线上攻"], name="短线上攻", line=dict(color="#8B5CF6", width=2, dash="dot"), mode="lines+markers+text", text=df_plot["短线上攻"].astype(str), textposition="top center", textfont=dict(size=11, color="#8B5CF6", weight="bold")))
             fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["中线上攻"], name="中线上攻", line=dict(color="#EC4899", width=2, dash="dot"), mode="lines+markers+text", text=df_plot["中线上攻"].astype(str), textposition="top center", textfont=dict(size=11, color="#EC4899", weight="bold")))
             fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["涨停家数"], name="涨停家数", line=dict(color="#EF4444", width=2), mode="lines+markers+text", text=df_plot["涨停家数"].astype(str) + "家", textposition="top center", textfont=dict(size=11, color="#EF4444", weight="bold")))
@@ -509,7 +537,7 @@ with tab2:
                 fig = px.line(df_plot, x="日期", y=["上涨家数", "下跌家数"], markers=True, text="value")
                 st.plotly_chart(fig, use_container_width=True)
             with tab44:
-                fig = px.line(df_plot, x="日期", y=["昨日首板家数", "昨日连板家数"], markers=True, text="value")
+                fig = px.line(df_plot, x="日期", y=["昨日首板", "昨日连板"], markers=True, text="value")
                 fig.update_layout(title="首板数 vs 连板数")
                 st.plotly_chart(fig, use_container_width=True)
     else:
@@ -522,7 +550,7 @@ with tab3:
         format_df = df.copy().sort_values("日期", ascending=False).reset_index(drop=True)
         format_df["大盘成交额"] = format_df["大盘成交额"].astype(int)
 
-        int_fields = ["涨停家数", "跌停家数", "上涨家数", "下跌家数", "最高板", "昨日首板家数", "昨日连板家数"]
+        int_fields = ["涨停家数", "跌停家数", "上涨家数", "下跌家数", "最高板"]
         for field in int_fields:
             format_df[field] = pd.to_numeric(format_df[field], errors="coerce").fillna(0).astype(int)
 
@@ -530,7 +558,7 @@ with tab3:
         for field in float_fields:
             format_df[field] = pd.to_numeric(format_df[field], errors="coerce").fillna(0)
 
-        target_cols = ["昨日首板家数", "昨日连板家数", "中线上攻", "短线上攻"]
+        target_cols = ["中线上攻", "短线上攻"]
         for col in target_cols:
             diff = format_df[col] - format_df[col].shift(-1)
             format_df[col] = format_df[col].astype(str)
@@ -589,11 +617,15 @@ with tab3:
                         styles.append("background-color: #28a745; color: white; font-weight: bold" if v > 5 else "background-color: #dc3545; color: white; font-weight: bold")
                     except:
                         styles.append("")
-                elif col in ["昨日首板家数", "昨日连板家数", "中线上攻", "短线上攻"]:
+                elif col in ["昨日首板", "昨日连板", "中线上攻", "短线上攻"]:
                     txt = str(row[col])
                     if "↑" in txt:
                         styles.append("color: #28a745; font-weight: bold; font-size:14px;")
                     elif "↓" in txt:
+                        styles.append("color: #dc3545; font-weight: bold; font-size:14px;")
+                    elif "金叉" in txt:
+                        styles.append("color: #28a745; font-weight: bold; font-size:14px;")
+                    elif "死叉" in txt:
                         styles.append("color: #dc3545; font-weight: bold; font-size:14px;")
                     else:
                         styles.append("color: #666; font-weight: bold;")
@@ -640,52 +672,62 @@ with tab4:
             except:
                 return 0.0
 
-        df_stat["竞价数值"] = df_stat["竞价"].apply(extract_num)
-        df_stat["星星龙头数值"] = df_stat["星星龙头"].apply(extract_num)
+        df_stat["竞价预判数值"] = df_stat["竞价预判"].apply(extract_num)
+        df_stat["一字首板数值"] = df_stat["一字首板"].apply(extract_num)
         df_stat["和信个股数值"] = df_stat["和信个股"].apply(extract_num)
         df_stat["板块核心数值"] = df_stat["板块核心"].apply(extract_num)
-        df_stat["波段先锋数值"] = df_stat["波段先锋"].apply(extract_num)
+        df_stat["首板突破数值"] = df_stat["首板突破"].apply(extract_num)
 
         period = st.radio("选择周期", ["按周统计", "按月统计"], horizontal=True)
         col = "周" if period == "按周统计" else "月"
 
         agg_df = df_stat.groupby(col).agg(
             天数=("日期", "count"),
-            竞价总和=("竞价数值", "sum"),
-            星星龙头总和=("星星龙头数值", "sum"),
+            竞价预判总和=("竞价预判数值", "sum"),
+            一字首板总和=("一字首板数值", "sum"),
             和信个股总和=("和信个股数值", "sum"),
             板块核心总和=("板块核心数值", "sum"),
-            波段先锋_均值=("波段先锋数值", "sum"),
+            首板突破_均值=("首板突破数值", "sum"),
         ).reset_index().sort_values(col, ascending=False)
 
         st.dataframe(agg_df, use_container_width=True)
 
         c1, c2, c3, c4, c5 = st.columns(5)
         with c1:
-            st.metric("📊 竞价总累计", f"{df_stat['竞价数值'].sum():.2f}")
+            st.metric("📊 竞价预判总累计", f"{df_stat['竞价预判数值'].sum():.2f}")
         with c2:
-            st.metric("🌟 星星龙头总累计", f"{df_stat['星星龙头数值'].sum():.2f}")
+            st.metric("🌟 一字首板总累计", f"{df_stat['一字首板数值'].sum():.2f}")
         with c3:
             st.metric("📝 和信个股总累计", f"{df_stat['和信个股数值'].sum():.2f}")
         with c4:
             st.metric("📊 板块核心总累计", f"{df_stat['板块核心数值'].sum():.2f}")
         with c5:
-            st.metric("📊 波段先锋总累计", f"{df_stat['波段先锋数值'].sum():.2f}")
+            st.metric("📊 首板突破总累计", f"{df_stat['首板突破数值'].sum():.2f}")
     else:
         st.info("暂无数据")
 
+# -------------------- TAB5：月度大盘分析 --------------------
 # -------------------- TAB5：月度大盘分析 --------------------
 with tab5:
     st.subheader("🗓️ 月度大盘分析记录")
     df_month = get_all_month_analysis()
     if not df_month.empty:
-        st.dataframe(
-            df_month,
-            use_container_width=True,
-            height=600
-        )
+        # 定制表格：窄时间列、分析列自动换行加宽
+        styled_month = df_month.style.set_table_styles([
+            # 表头居中
+            {'selector':'th','props':[('text-align','center'),('background-color','#4C6EF5'),('color','white')]},
+            # 单元格基础
+            {'selector':'td','props':[('vertical-align','top'),('padding','8px')]}
+        ])
+        st.html(f'''
+        <div style="width:100%; overflow:auto;">
+            {styled_month.to_html()}
+        </div>
+        ''')
     else:
         st.info("暂无月度大盘分析数据")
+
+
 # ====================== 数据录入 / 修改 / 删除（不变） ======================
 if show_add:
     with st.sidebar:
@@ -711,13 +753,13 @@ if show_add:
                 short_line_attack = st.number_input("短线上攻", 0.0, 100.0, 0.0, step=0.1)
 
                 idx = st.text_area("指数节点")
-                auc = st.text_area("竞价")
-                star = st.text_area("星星龙头")
+                auc = st.text_area("竞价预判")
+                star = st.text_area("一字首板")
                 hexin = st.text_area("和信个股")
                 sector = st.text_area("板块核心")
-                band_pioneer = st.text_area("波段先锋")
-                first_plate_yesterday = st.number_input("昨日首板家数", 0, 200, 0)
-                con_plate_yesterday = st.number_input("昨日连板家数", 0, 100, 0)
+                band_pioneer = st.text_area("首板突破")
+                first_plate_yesterday = st.number_input("昨日首板", 0, 200, 0)
+                con_plate_yesterday = st.number_input("昨日连板", 0, 100, 0)
 
                 submitted = st.form_submit_button("✅ 提交")
                 if submitted:
@@ -738,7 +780,7 @@ if show_edit:
             max_id = int(df["id"].max()) if not df.empty else 1
             edit_id = st.number_input("修改ID", 1, 9999, step=1, value=max_id)
             load_data = df[df["id"] == edit_id].iloc[0] if not df.empty and edit_id in df["id"].values else None
-            field_map = {"平均股价_大盘": "avg_price_dapan","上证指数": "sh_index","流动资金": "liquidity","大盘成交额": "market_volume","涨停家数": "limit_up","跌停家数": "limit_down","上涨家数": "rise_count","下跌家数": "fall_count","最高板": "max_board","指数节点": "index_node","竞价": "auction","星星龙头": "star_leader","和信个股": "hexin_stock","板块核心": "sector_core","波段先锋": "band_pioneer","昨日首板家数": "first_plate_yesterday","昨日连板家数": "con_plate_yesterday","短线上攻":"short_line_attack","中线上攻":"mid_line_attack"}
+            field_map = {"平均股价_大盘": "avg_price_dapan","上证指数": "sh_index","流动资金": "liquidity","大盘成交额": "market_volume","涨停家数": "limit_up","跌停家数": "limit_down","上涨家数": "rise_count","下跌家数": "fall_count","最高板": "max_board","指数节点": "index_node","竞价预判": "auction","一字首板": "star_leader","和信个股": "hexin_stock","板块核心": "sector_core","首板突破": "band_pioneer","昨日首板": "first_plate_yesterday","昨日连板": "con_plate_yesterday","短线上攻":"short_line_attack","中线上攻":"mid_line_attack"}
             selected_field_cn = st.selectbox("选择字段", list(field_map.keys()))
             field_en = field_map[selected_field_cn]
             default_value = str(load_data[selected_field_cn]) if load_data is not None else ""
