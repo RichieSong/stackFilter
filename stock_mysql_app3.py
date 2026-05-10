@@ -454,6 +454,7 @@ with tab1:
         st.info("暂无数据")
 
 # -------------------- TAB2：情绪周期图 + 趋势图 --------------------
+
 with tab2:
     if not df.empty:
         with st.container(border=True):
@@ -487,32 +488,87 @@ with tab2:
             import plotly.graph_objects as go
             fig = go.Figure()
 
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["情绪分"], name="情绪分", line=dict(color="#1f77b4", width=3), mode="lines+markers+text", text=df_plot["情绪分"], textposition="top center"))
+            # 1. 情绪分
+            fig.add_trace(go.Scatter(
+                x=df_plot["日期"], y=df_plot["情绪分"], name="情绪分",
+                line=dict(color="#1f77b4", width=3),
+                mode="lines+markers+text", text=df_plot["情绪分"], textposition="top center"
+            ))
+
+            # 2. 最高板
             df_plot["最高板_真实"] = df_plot["最高板"].fillna(1).astype(int)
-
-            def calc_y(val):
-                return val * 10 if val <= 10 else 100
-
+            def calc_y(val): return val * 10 if val <= 10 else 100
             df_plot["最高板_缩放"] = df_plot["最高板_真实"].apply(calc_y)
             df_plot["最高板_标签"] = df_plot["最高板_真实"].astype(str) + "板"
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["最高板_缩放"], name="最高板", line=dict(color="#FF6B35", width=3), mode="lines+markers+text", text=df_plot["最高板_标签"], textposition="top center", textfont=dict(size=12, color="#FF6B35", weight="bold"), marker=dict(size=8, color="#FF6B35")))
+            fig.add_trace(go.Scatter(
+                x=df_plot["日期"], y=df_plot["最高板_缩放"], name="最高板",
+                line=dict(color="#FF6B35", width=3),
+                mode="lines+markers+text", text=df_plot["最高板_标签"], textposition="top center",
+                textfont=dict(size=12, color="#FF6B35", weight="bold"), marker=dict(size=8, color="#FF6B35")
+            ))
 
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["昨日首板"], name="昨日首板", line=dict(color="#22c55e", width=2), mode="lines+markers+text", text=df_plot["昨日首板"].astype(str) , textposition="top center", textfont=dict(size=11, color="#22c55e", weight="bold")))
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["昨日连板"], name="昨日连板", line=dict(color="#f59e0b", width=2), mode="lines+markers+text", text=df_plot["昨日连板"].astype(str) , textposition="top center", textfont=dict(size=11, color="#f59e0b", weight="bold")))
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["短线上攻"], name="短线上攻", line=dict(color="#8B5CF6", width=2, dash="dot"), mode="lines+markers+text", text=df_plot["短线上攻"].astype(str), textposition="top center", textfont=dict(size=11, color="#8B5CF6", weight="bold")))
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["中线上攻"], name="中线上攻", line=dict(color="#EC4899", width=2, dash="dot"), mode="lines+markers+text", text=df_plot["中线上攻"].astype(str), textposition="top center", textfont=dict(size=11, color="#EC4899", weight="bold")))
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["涨停家数"], name="涨停家数", line=dict(color="#EF4444", width=2), mode="lines+markers+text", text=df_plot["涨停家数"].astype(str) + "家", textposition="top center", textfont=dict(size=11, color="#EF4444", weight="bold")))
-            fig.add_trace(go.Scatter(x=df_plot["日期"], y=df_plot["跌停家数"], name="跌停家数", line=dict(color="#6B7280", width=2), mode="lines+markers+text", text=df_plot["跌停家数"].astype(str) + "家", textposition="top center", textfont=dict(size=11, color="#6B7280", weight="bold")))
+            # ===================== 核心修复：0轴下方两行显示，不重叠 =====================
+            # 昨日首板 → 0轴下第1行 y=-2
+            fig.add_trace(go.Scatter(
+                x=df_plot["日期"], y=[-2]*len(df_plot),
+                text=df_plot["昨日首板"].astype(str),
+                mode="text", name="昨日首板",
+                textfont=dict(size=11, color="#22c55e", weight="bold"),
+                textposition="middle center"
+            ))
 
+            # 昨日连板 → 0轴下第2行 y=-4
+            fig.add_trace(go.Scatter(
+                x=df_plot["日期"], y=[-4]*len(df_plot),
+                text=df_plot["昨日连板"].astype(str),
+                mode="text", name="昨日连板",
+                textfont=dict(size=11, color="#f59e0b", weight="bold"),
+                textposition="middle center"
+            ))
+            # ==========================================================================
+
+            # 短线上攻 / 中线上攻 柱状图
+            fig.add_trace(go.Bar(x=df_plot["日期"], y=df_plot["短线上攻"], name="短线上攻", marker=dict(color="#8B5CF6"), textposition="outside"))
+            fig.add_trace(go.Bar(x=df_plot["日期"], y=df_plot["中线上攻"], name="中线上攻", marker=dict(color="#EC4899"), textposition="outside"))
+
+            # 涨停家数
+            fig.add_trace(go.Scatter(
+                x=df_plot["日期"], y=df_plot["涨停家数"], name="涨停家数",
+                line=dict(color="#EF4444", width=2),
+                mode="lines+markers+text", text=df_plot["涨停家数"].astype(str) + "家",
+                textposition="top center", textfont=dict(size=11, color="#EF4444", weight="bold")
+            ))
+
+            # 跌停家数
+            fig.add_trace(go.Scatter(
+                x=df_plot["日期"], y=df_plot["跌停家数"], name="跌停家数",
+                line=dict(color="#6B7280", width=2),
+                mode="lines+markers+text", text=df_plot["跌停家数"].astype(str) + "家",
+                textposition="top center", textfont=dict(size=11, color="#6B7280", weight="bold")
+            ))
+
+            # 金叉死叉
             x_list = df_plot["日期"]
-            y_list = df_plot["天数"] * df_plot["类型"].map({"金叉": 1, "死叉": -1, "无": 0})
+            y_list = df_plot["天数"] * df_plot["类型"].map({"金叉":1, "死叉":-1, "无":0})
             text_list = df_plot["显示文本"]
             colors = ["#2E8B57" if t == "金叉" else "#DC143C" if t == "死叉" else "#888" for t in df_plot["类型"]]
-            fig.add_trace(go.Scatter(x=x_list, y=y_list, name="平均股价", line=dict(color="#888", width=3), mode="lines+markers+text", text=text_list, textposition="bottom center", textfont=dict(color=colors, size=11, family="bold"), marker=dict(color=colors, size=10), yaxis="y2"))
+            fig.add_trace(go.Scatter(
+                x=x_list, y=y_list, name="平均股价",
+                line=dict(color="#888", width=3),
+                mode="lines+markers+text", text=text_list, textposition="bottom center",
+                textfont=dict(color=colors, size=11, family="bold"),
+                marker=dict(color=colors, size=10), yaxis="y2"
+            ))
 
             fig.add_hline(y=80, line_color="red", line_dash="dot", annotation_text="过热")
             fig.add_hline(y=30, line_color="blue", line_dash="dot", annotation_text="冰点")
-            fig.update_layout(template="plotly_white", height=500, yaxis=dict(title="综合指标", range=[0, 120]), yaxis2=dict(title="金叉(+) / 死叉(-)", overlaying="y", side="right", range=[-10, 10]), legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5))
+
+            fig.update_layout(
+                template="plotly_white", height=520,
+                yaxis=dict(title="综合指标", range=[-10, 120]),  # 向下扩大空间，显示文字
+                yaxis2=dict(title="金叉(+) / 死叉(-)", overlaying="y", side="right", range=[-10, 10]),
+                legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="center", x=0.5)
+            )
             st.plotly_chart(fig, use_container_width=True)
 
         st.divider()
@@ -527,23 +583,27 @@ with tab2:
 
             tab11, tab22, tab33, tab44 = st.tabs(["💰 成交额", "🚥 涨跌停", "📈 涨跌家数", "🔥 首板/连板"])
             with tab11:
+                import plotly.express as px
                 fig = px.line(df_plot, x="日期", y="大盘成交额", markers=True, text="大盘成交额")
                 fig.update_traces(textposition="top center")
                 st.plotly_chart(fig, use_container_width=True)
             with tab22:
-                fig = px.line(df_plot, x="日期", y=["涨停家数", "跌停家数"], markers=True, text="value")
+                fig = px.line(df_plot, x="日期", y=["涨停家数","跌停家数"], markers=True, text="value")
                 st.plotly_chart(fig, use_container_width=True)
             with tab33:
-                fig = px.line(df_plot, x="日期", y=["上涨家数", "下跌家数"], markers=True, text="value")
+                fig = px.line(df_plot, x="日期", y=["上涨家数","下跌家数"], markers=True, text="value")
                 st.plotly_chart(fig, use_container_width=True)
             with tab44:
-                fig = px.line(df_plot, x="日期", y=["昨日首板", "昨日连板"], markers=True, text="value")
-                fig.update_layout(title="首板数 vs 连板数")
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=df_plot["日期"], y=[1]*len(df_plot), text=df_plot["昨日首板"], mode="text", name="昨日首板", textfont=dict(color="#22c55e",size=14,weight="bold")))
+                fig.add_trace(go.Scatter(x=df_plot["日期"], y=[0]*len(df_plot), text=df_plot["昨日连板"], mode="text", name="昨日连板", textfont=dict(color="#f59e0b",size=14,weight="bold")))
+                fig.update_layout(title="首板 / 连板 文本展示", yaxis=dict(visible=False), height=300)
                 st.plotly_chart(fig, use_container_width=True)
     else:
         st.info("暂无数据")
 
-# -------------------- TAB3：历史数据表格（升降箭头+染色） --------------------
+
+
 with tab3:
     st.subheader("📋 历史数据（智能染色）")
     if not df.empty:
@@ -758,8 +818,8 @@ if show_add:
                 hexin = st.text_area("和信个股")
                 sector = st.text_area("板块核心")
                 band_pioneer = st.text_area("首板突破")
-                first_plate_yesterday = st.number_input("昨日首板", 0, 200, 0)
-                con_plate_yesterday = st.number_input("昨日连板", 0, 100, 0)
+                first_plate_yesterday = st.text_area("昨日首板")
+                con_plate_yesterday = st.text_area("昨日连板")
 
                 submitted = st.form_submit_button("✅ 提交")
                 if submitted:
